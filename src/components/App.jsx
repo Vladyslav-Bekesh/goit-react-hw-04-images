@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useEffect } from 'react';
 
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -13,122 +13,106 @@ import SearchForm from './SearchForm';
 import fetchPic from '../utils/fetchPic';
 
 import { ImgCss } from './Modal/Modal.styled';
+import { useState } from 'react';
 
-export class App extends Component {
-  perPage = 12;
+export function App() {
+  //! STATE
+  const [querry, setQuerry] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [data, setData] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [error, setError] = useState('');
+  const [status, setStatus] = useState('idle');
+  const [showModal, setShowModal] = useState('');
+  const [bigImage, setBigImage] = useState('');
 
-  state = {
-    querry: '',
-    currentPage: 1,
-    data: [],
-    total: 0,
-    error: '',
-    status: 'idle',
-    showModal: false,
-    bigImage: '',
-  };
+  const perPage = 12;
 
-  async componentDidUpdate(prevProps, prevState) {
-    const { perPage } = this;
-    const { querry, currentPage } = this.state;
-    const { querry: prevQuerry, currentPage: prevPage } = prevState;
+  useEffect(() => {
+    if (querry !== '') {
+      const fetchData = async () => {
+        try {
+          setStatus('pending');
+          const response = await fetchPic(querry, currentPage, perPage);
 
-    if (querry !== prevQuerry || currentPage !== prevPage) {
-      try {
-        this.setState({ status: 'pending' });
-        console.log('fecth');
+          if (response.hits.length === 0) {
+            throw new Error('We cannot find this');
+          }
 
-        const data = await fetchPic(querry, currentPage, perPage);
-
-        console.log('fecth fecthed');
-        if (data.hits.length === 0) {
-          console.log('fecth rejected');
-          throw new Error('We cannot find this');
+          setStatus('resolved');
+          setTotal(response.total);
+          setData(prevState => {
+            return [...prevState, ...response.hits];
+          });
+        } catch ({ message }) {
+          console.log(message);
+          setStatus('rejected');
+          setError(message);
         }
+      };
 
-        this.setState(prevState => ({
-          data: [...prevState.data, ...data.hits],
-          total: data.total,
-          status: 'resolved',
-        }));
-      } catch ({ message }) {
-        console.log(message);
-        this.setState({ status: 'rejected', error: message });
-      }
+      // console.log(document.documentElement.scrollHeight);
+      // window.scrollTo(0, document.documentElement.scrollHeight);
+      
+      fetchData();
     }
-  }
+  }, [querry, currentPage]);
 
-  handleSubmit = querry => {
-    this.setState({
-      querry: querry,
-      currentPage: 1,
-      data: [],
-      total: 0,
-      error: '',
-      status: 'idle',
-    });
+  const handleSubmit = querry => {
+    setQuerry(querry);
+    setCurrentPage(1);
+    setTotal(0);
+    setData([]);
+    setError('');
+    setStatus('idle');
   };
 
-  togleBigImg = event => {
+  const togleBigImg = event => {
     event.preventDefault();
     const { target } = event;
 
-    this.togleModal(event);
-
-    this.setState({
-      bigImage: target.getAttribute('data-large-image-url'),
-    });
+    togleModal(event);
+    setBigImage(target.getAttribute('data-large-image-url'));
   };
 
-  togleModal = event => {
+  const togleModal = event => {
     event.preventDefault();
 
-    this.setState(prevState => ({
-      showModal: !prevState.showModal,
-    }));
+    setShowModal(prevState => !prevState);
   };
 
-  loadMore = () => {
-    this.setState(prevState => ({
-      currentPage: prevState.currentPage + 1,
-    }));
+  const loadMore = () => {
+    setCurrentPage(prevPage => prevPage + 1);
   };
 
-  handleNotifcation = () => {
-    this.setState({ status: 'idle' });
-    return toast.error(this.state.error);
-   }
+  const handleNotifcation = () => {
+    setStatus('idle');
+    return toast.error(error);
+  };
 
-  render() {
-    const { status, data, currentPage, total, showModal, bigImage } =
-      this.state;
-    
-    return (
-      <>
-        <ToastContainer />
-        <Searchbar>
-          <SearchForm onSubmit={this.handleSubmit} />
-        </Searchbar>
+  return (
+    <>
+      <ToastContainer />
+      <Searchbar>
+        <SearchForm onSubmit={handleSubmit} />
+      </Searchbar>
 
-        {status === 'pending' && <LoaderSpinner />}
-        {status === 'rejected' && this.handleNotifcation()}
+      {status === 'pending' && <LoaderSpinner />}
+      {status === 'rejected' && handleNotifcation()}
 
-        {status === 'resolved' && (
-          <ImageGallery images={data} onClick={this.togleBigImg} />
-        )}
+      {status === 'resolved' && (
+        <ImageGallery images={data} onClick={togleBigImg} />
+      )}
 
-        {this.perPage * currentPage <= total && (
-          <Button onClick={this.loadMore} text={'Load more'} />
-        )}
+      {perPage * currentPage <= total && (
+        <Button onClick={loadMore} text={'Load more'} />
+      )}
 
-        {showModal && (
-          <Modal onClose={this.togleModal}>
-            <ImgCss src={bigImage} alt="" />
-          </Modal>
-        )}
-      </>
-    );
-  }
+      {showModal && (
+        <Modal onClose={togleModal}>
+          <ImgCss src={bigImage} alt="" />
+        </Modal>
+      )}
+    </>
+  );
 }
-
-export default App;

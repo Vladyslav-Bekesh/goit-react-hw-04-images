@@ -1,16 +1,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { ItemCss, ImageCss } from './ImageGalleryItem.styled';
 
 function ImageGalleryItem({ previewURL, id, onClick, largeImageURL }) {
   return (
-    <li key={id}>
-      <img
+    <ItemCss key={id}>
+      <ImageCss
         src={previewURL}
         onClick={onClick}
         data-large-image-url={largeImageURL}
-        alt=""
+        alt="your advertisment can be here"
       />
-    </li>
+    </ItemCss>
   );
 }
 

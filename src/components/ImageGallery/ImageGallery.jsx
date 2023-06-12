@@ -2,10 +2,11 @@ import React from 'react';
 import PropTypes, { object } from 'prop-types';
 
 import ImageGalleryItem from '../ImageGalleryItem';
+import { ListCss } from './ImageGallery.styled';
 
 function ImageGallery({ images, onClick }) {
   return (
-    <ul>
+    <ListCss>
       {images.map(({ previewURL, largeImageURL, id }) => {
         return (
           <ImageGalleryItem
@@ -16,7 +17,7 @@ function ImageGallery({ images, onClick }) {
           />
         );
       })}
-    </ul>
+    </ListCss>
   );
 }
 
